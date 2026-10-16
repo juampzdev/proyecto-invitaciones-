@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <title>Personalizá tu invitación · Cartitas</title>
+</head>
+<body>
+  <header class="site-header"><div class="container"><a class="logo" href="/">Cartitas</a></div></header>
+  <main class="container editor">
+    <form class="panel" id="form" novalidate>
+      <h2>Personalizá tu invitación 🎂</h2>
+      <div class="errors" id="errors" role="alert"></div>
+
+      <div class="row">
+        <div class="field">
+          <label for="name">Nombre *</label>
+          <input type="text" id="name" name="name" maxlength="60" required placeholder="Ej: Sofía" />
+        </div>
+        <div class="field">
+          <label for="age">Edad que cumple</label>
+          <input type="number" id="age" name="age" min="1" max="120" inputmode="numeric" placeholder="Ej: 30" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="date">Fecha y hora *</label>
+        <input type="datetime-local" id="date" name="date" required />
+      </div>
+
+      <div class="field">
+        <label for="place">Lugar</label>
+        <input type="text" id="place" name="place" maxlength="120" placeholder="Ej: Salón Las Palmeras, Av. Siempreviva 742" />
+      </div>
+
+      <div class="field">
+        <label for="note">Nota para tus invitados</label>
+        <textarea id="note" name="note" maxlength="256" placeholder="Ej: ¡No faltes! Traé tu mejor onda 🎉"></textarea>
+        <span class="counter" id="counter">0 / 256</span>
+      </div>
+
+      <div class="field">
+        <label>Fotos (máximo 3)</label>
+        <div class="photos" id="photos"></div>
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden />
+        <span class="hint">JPG, PNG, WEBP o GIF. Las fotos se optimizan automáticamente.</span>
+      </div>
+
+      <div class="field">
+        <label>Estilo de la tarjeta</label>
+        <div class="themes">
+          <label class="theme-opt" title="Fiesta"><input type="radio" name="theme" value="fiesta" checked /><span class="swatch-fiesta"></span></label>
+          <label class="theme-opt" title="Pastel"><input type="radio" name="theme" value="pastel" /><span class="swatch-pastel"></span></label>
+          <label class="theme-opt" title="Noche"><input type="radio" name="theme" value="noche" /><span class="swatch-noche"></span></label>
+          <label class="theme-opt" title="Dorado"><input type="radio" name="theme" value="dorado" /><span class="swatch-dorado"></span></label>
+        </div>
+      </div>
+
+      <div class="total"><span>Total</span><span id="price">—</span></div>
+      <button class="btn btn-block" type="submit" id="submit">Continuar al pago</button>
+    </form>
+
+    <section class="preview-col" aria-label="Vista previa">
+      <p class="preview-label">Vista previa</p>
+      <div id="preview"></div>
+    </section>
+  </main>
+  <script src="/js/card.js"></script>
+  <script src="/js/crear.js"></script>
+</body>
+</html>

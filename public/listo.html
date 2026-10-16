@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <title>¡Tu invitación está lista! · Cartitas</title>
+  <meta name="robots" content="noindex" />
+</head>
+<body>
+  <header class="site-header"><div class="container"><a class="logo" href="/">Cartitas</a></div></header>
+  <main class="container">
+    <div class="panel narrow qr-box">
+      <h2>¡Tu invitación está lista! 🎉</h2>
+      <div class="errors" id="errors" role="alert"></div>
+      <p>Compartí este código QR o el link con tus invitados.</p>
+      <img id="qr" alt="Código QR de la invitación" />
+      <div class="link-box">
+        <input type="text" id="link" readonly aria-label="Link de la invitación" />
+        <button class="btn" id="copy" type="button">Copiar</button>
+      </div>
+      <div class="actions">
+        <button class="btn" id="share" type="button" hidden>Compartir</button>
+        <a class="btn btn-ghost" id="whatsapp" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+        <a class="btn btn-ghost" id="download">Descargar QR</a>
+        <a class="btn btn-ghost" id="open" target="_blank" rel="noopener">Ver invitación</a>
+      </div>
+    </div>
+  </main>
+  <script src="/js/listo.js"></script>
+</body>
+</html>

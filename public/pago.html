@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <title>Pago · Cartitas</title>
+  <meta name="robots" content="noindex" />
+</head>
+<body>
+  <header class="site-header"><div class="container"><a class="logo" href="/">Cartitas</a></div></header>
+  <main class="container">
+    <div class="panel narrow">
+      <h2>Confirmá tu compra</h2>
+      <div class="errors" id="errors" role="alert"></div>
+      <ul class="summary" id="summary"></ul>
+      <button class="btn btn-block" id="pay">Pagar</button>
+      <p class="demo-note">⚠️ Modo demostración: el pago se aprueba sin cobrar. Acá se conectará Mercado Pago / Stripe.</p>
+      <p class="center"><a id="previewLink" href="#">Ver vista previa</a></p>
+    </div>
+  </main>
+  <script src="/js/card.js"></script>
+  <script src="/js/pago.js"></script>
+</body>
+</html>

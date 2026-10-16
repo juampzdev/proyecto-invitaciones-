@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <title>Cartitas · Invitaciones digitales</title>
+  <meta name="description" content="Creá cartas e invitaciones digitales personalizadas y compartilas con un código QR." />
+</head>
+<body>
+  <header class="site-header"><div class="container"><a class="logo" href="/">Cartitas</a></div></header>
+  <main class="container">
+    <section class="hero">
+      <h1>Cartas e invitaciones que enamoran 💌</h1>
+      <p>Elegí una carta, personalizala con tus fotos, la fecha y un mensaje, y compartila con un código QR o un link.</p>
+      <a class="btn" href="/crear?t=cumpleanos">Crear invitación de cumpleaños</a>
+    </section>
+    <section class="catalog" id="catalog" aria-label="Catálogo de cartas"></section>
+  </main>
+  <script>
+    const META = {
+      cumpleanos: { emoji: '🎂', desc: 'Hasta 3 fotos, fecha, lugar y una nota de hasta 256 caracteres. Incluye QR para compartir.' },
+      noviazgo: { emoji: '💘', desc: 'Una carta especial para hacer la gran pregunta.' },
+      cita: { emoji: '🌹', desc: 'Invitá a esa persona a una cita inolvidable.' },
+    };
+    fetch('/api/templates').then((r) => r.json()).then(({ templates }) => {
+      const box = document.getElementById('catalog');
+      templates.forEach((t) => {
+        const m = META[t.id] || { emoji: '✉️', desc: '' };
+        const tile = document.createElement('div');
+        tile.className = 'tile' + (t.available ? '' : ' soon');
+        const emoji = Object.assign(document.createElement('div'), { className: 'emoji', textContent: m.emoji });
+        const h = Object.assign(document.createElement('h3'), { textContent: t.name });
+        const p = Object.assign(document.createElement('p'), { textContent: m.desc });
+        tile.append(emoji, h, p);
+        if (t.available) {
+          const price = Object.assign(document.createElement('div'), { className: 'price',
+            textContent: new Intl.NumberFormat('es-AR', { style: 'currency', currency: t.currency, maximumFractionDigits: 0 }).format(t.price) });
+          const a = Object.assign(document.createElement('a'), { className: 'btn', href: '/crear?t=' + t.id, textContent: 'Personalizar' });
+          tile.append(price, a);
+        } else {
+          tile.append(Object.assign(document.createElement('span'), { className: 'badge', textContent: 'Próximamente' }));
+        }
+        box.appendChild(tile);
+      });
+    });
+  </script>
+</body>
+</html>
