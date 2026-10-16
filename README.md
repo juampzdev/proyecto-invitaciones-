@@ -18,6 +18,12 @@ Pedido de noviazgo y cita aparecen como "Próximamente".
 
 ## Correr localmente
 
+**La forma más fácil:** doble clic en `iniciar-windows.bat` (Windows) o `iniciar-mac.command` (Mac).
+La primera vez instala las dependencias; después arranca el servidor y abre el navegador solo.
+En la ventana aparece también la dirección para abrir la web desde el celular (misma red WiFi).
+
+Desde la terminal:
+
 ```bash
 npm install
 npm start          # http://localhost:3000

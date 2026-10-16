@@ -182,9 +182,30 @@ app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] })
 
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, 'public', '404.html')));
 
+// Direcciones IPv4 de la red local (ej. 192.168.1.35), para abrir la web desde el celular.
+function localIps() {
+  return Object.values(require('os').networkInterfaces())
+    .flat()
+    .filter((i) => i && i.family === 'IPv4' && !i.internal)
+    .map((i) => i.address);
+}
+
+function openBrowser(url) {
+  const { exec } = require('child_process');
+  const cmd = process.platform === 'win32' ? `start "" "${url}"`
+    : process.platform === 'darwin' ? `open "${url}"`
+    : `xdg-open "${url}"`;
+  exec(cmd, () => {});
+}
+
 if (require.main === module) {
   app.listen(config.port, () => {
-    console.log(`Servidor listo en http://localhost:${config.port} (pagos: ${config.paymentMode})`);
+    const url = `http://localhost:${config.port}`;
+    console.log(`\nServidor listo (pagos: ${config.paymentMode})`);
+    console.log(`  En esta computadora:  ${url}`);
+    localIps().forEach((ip) => console.log(`  Desde tu celular:     http://${ip}:${config.port}  (misma red WiFi)`));
+    console.log('\nPara apagarlo, cerrá esta ventana o apretá Ctrl + C.\n');
+    if (process.env.ABRIR_NAVEGADOR) openBrowser(url);
   });
 }
 
