@@ -10,7 +10,7 @@
     "test": "node --test test/*.test.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.12"
   },
   "repository": {
     "type": "git",
@@ -20,6 +20,7 @@
   "dependencies": {
     "express": "^4.22.3",
     "multer": "^2.4.0",
+    "pg": "^8.23.1",
     "qrcode": "^1.5.4"
   }
 }

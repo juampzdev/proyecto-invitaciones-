@@ -4,8 +4,17 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// Los tests usan una base de datos aparte (TEST_DATABASE_URL) que se vacía en cada corrida.
+// Nunca apuntes TEST_DATABASE_URL a tu base real.
+const TEST_DB = process.env.TEST_DATABASE_URL;
+if (!TEST_DB) {
+  test('tests de la API', { skip: 'Definí TEST_DATABASE_URL para correrlos (ver README).' }, () => {});
+  return;
+}
+process.env.DATABASE_URL = TEST_DB;
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cartitas-'));
 const app = require('../server');
+const db = require('../src/db');
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -14,8 +23,15 @@ const PNG = Buffer.from(
 
 let base;
 let server;
-test.before(() => new Promise((r) => { server = app.listen(0, () => { base = `http://127.0.0.1:${server.address().port}`; r(); }); }));
-test.after(() => server.close());
+test.before(async () => {
+  await db.migrate();
+  await db.query('TRUNCATE invitations CASCADE');
+  await new Promise((r) => { server = app.listen(0, () => { base = `http://127.0.0.1:${server.address().port}`; r(); }); });
+});
+test.after(async () => {
+  server.close();
+  await db.pool.end();
+});
 
 function form(fields, images = []) {
   const fd = new FormData();
@@ -54,6 +70,23 @@ test('flujo completo: crear, pagar, ver y QR', async () => {
 
   r = await fetch(base + body.invitation.images[0]);
   assert.strictEqual(r.status, 200);
+
+  // Los datos quedaron en PostgreSQL: la invitación y sus 2 fotos, en orden.
+  const { rows } = await db.query('SELECT position FROM invitation_images WHERE invitation_id = $1 ORDER BY position', [id]);
+  assert.deepStrictEqual(rows.map((x) => x.position), [1, 2]);
+  assert.strictEqual(body.invitation.date, '2030-11-14T21:00');
+  assert.strictEqual(body.invitation.name, 'Sofía');
+
+  // Pagar dos veces no cambia la fecha del primer pago.
+  const before = (await db.query('SELECT paid_at FROM invitations WHERE id = $1', [id])).rows[0].paid_at;
+  await fetch(`${base}/api/invitations/${id}/pay`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: ownerToken }) });
+  const after = (await db.query('SELECT paid_at FROM invitations WHERE id = $1', [id])).rows[0].paid_at;
+  assert.strictEqual(after.getTime(), before.getTime());
+});
+
+test('ids inexistentes o mal formados devuelven 404', async () => {
+  assert.strictEqual((await fetch(`${base}/api/invitations/noexiste12345`)).status, 404);
+  assert.strictEqual((await fetch(`${base}/api/invitations/${encodeURIComponent("x' OR '1'='1")}`)).status, 404);
 });
 
 test('rechaza más de 3 imágenes', async () => {
@@ -74,5 +107,7 @@ test('rechaza archivos que no son imágenes y fechas inválidas', async () => {
   r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, date: 'mañana' }) });
   assert.strictEqual(r.status, 400);
   r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, name: '' }) });
+  assert.strictEqual(r.status, 400);
+  r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, age: '500' }) });
   assert.strictEqual(r.status, 400);
 });

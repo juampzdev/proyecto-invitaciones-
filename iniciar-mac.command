@@ -6,8 +6,13 @@ if ! command -v node >/dev/null 2>&1; then
   read -r -p "Apretá Enter para cerrar..."
   exit 1
 fi
-if [ ! -d node_modules ]; then
-  echo "Instalando dependencias, solo la primera vez..."
-  npm install || exit 1
+if [ ! -f .env ]; then
+  cp .env.example .env
+  echo "Se creó el archivo .env. Completá DATABASE_URL y volvé a ejecutar este archivo."
+  open -e .env 2>/dev/null || true
+  read -r -p "Apretá Enter para cerrar..."
+  exit 1
 fi
+# Instala o actualiza las dependencias (si ya están al día tarda un par de segundos).
+npm install --no-audit --no-fund || exit 1
 ABRIR_NAVEGADOR=1 npm start

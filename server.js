@@ -6,6 +6,7 @@ const QRCode = require('qrcode');
 
 const config = require('./src/config');
 const templates = require('./src/templates');
+const db = require('./src/db');
 const store = require('./src/store');
 const payments = require('./src/payments');
 
@@ -41,6 +42,9 @@ function detectImage(buf) {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
+// Express 4 no atrapa los errores de funciones async: este envoltorio los pasa al manejador de errores.
+const asyncRoute = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+
 function str(v) {
   return typeof v === 'string' ? v.trim() : '';
 }
@@ -59,7 +63,7 @@ function validateBirthday(body) {
 
   if (!name) errors.push('Ingresá el nombre del cumpleañero/a.');
   if (name.length > limits.maxNameChars) errors.push(`El nombre no puede superar ${limits.maxNameChars} caracteres.`);
-  if (age && !/^\d{1,3}$/.test(age)) errors.push('La edad debe ser un número.');
+  if (age && !(/^\d{1,3}$/.test(age) && +age >= 1 && +age <= 120)) errors.push('La edad debe ser un número entre 1 y 120.');
   if (!DATE_RE.test(date) || Number.isNaN(Date.parse(date))) errors.push('Elegí una fecha y hora válidas.');
   if (place.length > limits.maxPlaceChars) errors.push(`El lugar no puede superar ${limits.maxPlaceChars} caracteres.`);
   if ([...note].length > limits.maxNoteChars) errors.push(`La nota no puede superar ${limits.maxNoteChars} caracteres.`);
@@ -99,19 +103,23 @@ app.post('/api/invitations', (req, res) => {
     if (kinds.some((k) => !k)) errors.push('Solo se aceptan imágenes JPG, PNG, WEBP o GIF.');
     if (errors.length) return res.status(400).json({ errors });
 
-    const images = files.map((f, i) => {
-      const filename = `${store.newId(12)}.${kinds[i]}`;
-      fs.writeFileSync(path.join(store.uploadsDir, filename), f.buffer);
-      return `/uploads/${filename}`;
-    });
-
-    const inv = store.create({
-      template: tpl.id,
-      price: tpl.price,
-      currency: tpl.currency,
-      ...data,
-      images,
-    });
+    const filenames = files.map((f, i) => `${store.newId(12)}.${kinds[i]}`);
+    let inv;
+    try {
+      files.forEach((f, i) => fs.writeFileSync(path.join(store.uploadsDir, filenames[i]), f.buffer));
+      inv = await store.create({
+        template: tpl.id,
+        price: tpl.price,
+        currency: tpl.currency,
+        ...data,
+        images: filenames.map((name) => `/uploads/${name}`),
+      });
+    } catch (e) {
+      // Si no se pudo guardar, borramos las fotos para no dejar archivos huérfanos.
+      filenames.forEach((name) => fs.rm(path.join(store.uploadsDir, name), { force: true }, () => {}));
+      console.error(e);
+      return res.status(500).json({ errors: ['No se pudo guardar la invitación. Probá de nuevo.'] });
+    }
 
     try {
       const checkout = await payments.createCheckout(inv, baseUrl(req));
@@ -124,52 +132,43 @@ app.post('/api/invitations', (req, res) => {
 });
 
 // Vista de la invitación. Si no está paga, solo la puede ver su dueño (con token) como vista previa.
-app.get('/api/invitations/:id', (req, res) => {
-  const inv = store.get(req.params.id);
+app.get('/api/invitations/:id', asyncRoute(async (req, res) => {
+  const inv = await store.get(req.params.id);
   if (!inv) return res.status(404).json({ errors: ['Invitación no encontrada.'] });
   const isOwner = store.safeEqual(req.query.token, inv.ownerToken);
   if (inv.status !== 'paid' && !isOwner) {
     return res.status(402).json({ errors: ['Esta invitación todavía no está activa.'] });
   }
   res.json({ invitation: publicView(inv), url: invitationUrl(req, inv), isOwner });
-});
+}));
 
 // Pago simulado (solo en modo demo).
-app.post('/api/invitations/:id/pay', (req, res) => {
+app.post('/api/invitations/:id/pay', asyncRoute(async (req, res) => {
   if (config.paymentMode !== 'demo') return res.status(404).end();
-  const inv = store.get(req.params.id);
+  const inv = await store.get(req.params.id);
   if (!inv) return res.status(404).json({ errors: ['Invitación no encontrada.'] });
   if (!store.safeEqual(req.body && req.body.token, inv.ownerToken)) {
     return res.status(403).json({ errors: ['No autorizado.'] });
   }
-  if (inv.status !== 'paid') {
-    inv.status = 'paid';
-    inv.paidAt = new Date().toISOString();
-    store.save(inv);
-  }
+  await store.markPaid(inv.id);
   res.json({ ok: true, url: invitationUrl(req, inv) });
-});
+}));
 
 // Código QR (PNG) que apunta a la invitación. Solo existe una vez paga.
-app.get('/api/invitations/:id/qr.png', async (req, res) => {
-  const inv = store.get(req.params.id);
+app.get('/api/invitations/:id/qr.png', asyncRoute(async (req, res) => {
+  const inv = await store.get(req.params.id);
   if (!inv || inv.status !== 'paid') return res.status(404).end();
-  try {
-    const png = await QRCode.toBuffer(invitationUrl(req, inv), {
-      type: 'png',
-      width: 600,
-      margin: 2,
-      errorCorrectionLevel: 'M',
-    });
-    res.set('Content-Type', 'image/png');
-    res.set('Cache-Control', 'public, max-age=86400');
-    if (req.query.download) res.set('Content-Disposition', `attachment; filename="invitacion-${inv.id}.png"`);
-    res.send(png);
-  } catch (e) {
-    console.error(e);
-    res.status(500).end();
-  }
-});
+  const png = await QRCode.toBuffer(invitationUrl(req, inv), {
+    type: 'png',
+    width: 600,
+    margin: 2,
+    errorCorrectionLevel: 'M',
+  });
+  res.set('Content-Type', 'image/png');
+  res.set('Cache-Control', 'public, max-age=86400');
+  if (req.query.download) res.set('Content-Disposition', `attachment; filename="invitacion-${inv.id}.png"`);
+  res.send(png);
+}));
 
 // ---------- archivos estáticos ----------
 
@@ -181,6 +180,12 @@ app.get('/i/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'inv
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, 'public', '404.html')));
+
+// Errores inesperados (por ejemplo, la base de datos no responde).
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ errors: ['Error interno del servidor. Probá de nuevo en unos minutos.'] });
+});
 
 // Direcciones IPv4 de la red local (ej. 192.168.1.35), para abrir la web desde el celular.
 function localIps() {
@@ -198,7 +203,19 @@ function openBrowser(url) {
   exec(cmd, () => {});
 }
 
-if (require.main === module) {
+async function start() {
+  if (!config.databaseUrl) {
+    console.error('\nFalta configurar la base de datos.');
+    console.error('Copiá el archivo .env.example como .env y completá DATABASE_URL (ver README).\n');
+    process.exit(1);
+  }
+  try {
+    await db.migrate();
+  } catch (e) {
+    console.error('\nNo se pudo conectar a PostgreSQL:', e.message);
+    console.error('Revisá que la base esté encendida y que DATABASE_URL en .env sea correcta.\n');
+    process.exit(1);
+  }
   app.listen(config.port, () => {
     const url = `http://localhost:${config.port}`;
     console.log(`\nServidor listo (pagos: ${config.paymentMode})`);
@@ -208,5 +225,7 @@ if (require.main === module) {
     if (process.env.ABRIR_NAVEGADOR) openBrowser(url);
   });
 }
+
+if (require.main === module) start();
 
 module.exports = app;

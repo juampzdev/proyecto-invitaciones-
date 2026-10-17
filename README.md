@@ -16,36 +16,72 @@ El cliente personaliza la carta, paga, y obtiene un **link + código QR** para c
 
 Pedido de noviazgo y cita aparecen como "Próximamente".
 
+## Base de datos (PostgreSQL)
+
+Las invitaciones se guardan en PostgreSQL. Las tablas se crean solas al iniciar el servidor
+(ver `db/schema.sql`). Necesitás una base y su dirección de conexión (`DATABASE_URL`).
+Elegí **una** de estas opciones:
+
+**A. En la nube, gratis (lo más fácil):** creá una cuenta en [Neon](https://neon.tech) o
+[Supabase](https://supabase.com), creá un proyecto y copiá la *connection string*
+(algo como `postgresql://usuario:clave@ep-xxx.neon.tech/neondb?sslmode=require`).
+
+**B. Instalado en tu computadora:** descargá PostgreSQL desde https://www.postgresql.org/download/,
+recordá la contraseña que elegís para el usuario `postgres` y creá una base llamada `cartitas`
+(con pgAdmin, que viene incluido, o con `psql -U postgres -c "CREATE DATABASE cartitas;"`).
+La URL queda: `postgres://postgres:TU_CLAVE@localhost:5432/cartitas`.
+
+**C. Con Docker:** `docker compose up -d` levanta una base con la URL que ya trae `.env.example`.
+
+Después copiá `.env.example` como `.env` y pegá tu URL en `DATABASE_URL`.
+El archivo `.env` no se sube a GitHub (contiene contraseñas).
+
 ## Correr localmente
 
 **La forma más fácil:** doble clic en `iniciar-windows.bat` (Windows) o `iniciar-mac.command` (Mac).
-La primera vez instala las dependencias; después arranca el servidor y abre el navegador solo.
-En la ventana aparece también la dirección para abrir la web desde el celular (misma red WiFi).
+Si no existe `.env`, lo crea y te pide completar `DATABASE_URL`. Después instala las dependencias,
+arranca el servidor y abre el navegador solo. En la ventana aparece también la dirección para
+abrir la web desde el celular (misma red WiFi).
 
 Desde la terminal:
 
 ```bash
 npm install
 npm start          # http://localhost:3000
-npm test           # tests de la API
 ```
 
-Variables de entorno opcionales:
+### Tests
 
-| Variable       | Default  | Uso |
-|----------------|----------|-----|
-| `PORT`         | `3000`   | Puerto del servidor |
-| `PUBLIC_URL`   | (auto)   | URL pública (ej. `https://cartitas.com`); es la que va dentro del QR |
-| `DATA_DIR`     | `./data` | Dónde se guardan las invitaciones (JSON) y las fotos |
-| `PAYMENT_MODE` | `demo`   | `demo` aprueba el pago sin cobrar |
+Los tests usan una base **aparte**, que se vacía en cada corrida (nunca uses tu base real):
+
+```bash
+# crear la base de prueba una vez: CREATE DATABASE cartitas_test;
+TEST_DATABASE_URL=postgres://postgres:TU_CLAVE@localhost:5432/cartitas_test npm test
+```
+
+En Windows (PowerShell): `$env:TEST_DATABASE_URL="postgres://..."; npm test`.
+Sin `TEST_DATABASE_URL` los tests se saltean.
+
+### Variables de entorno
+
+| Variable            | Default  | Uso |
+|---------------------|----------|-----|
+| `DATABASE_URL`      | —        | **Obligatoria.** Conexión a PostgreSQL |
+| `PORT`              | `3000`   | Puerto del servidor |
+| `PUBLIC_URL`        | (auto)   | URL pública (ej. `https://cartitas.com`); es la que va dentro del QR |
+| `DATA_DIR`          | `./data` | Dónde se guardan las fotos |
+| `PAYMENT_MODE`      | `demo`   | `demo` aprueba el pago sin cobrar |
+| `TEST_DATABASE_URL` | —        | Base de datos para `npm test` |
 
 ## Estructura
 
 ```
 server.js            API + archivos estáticos (Express)
-src/config.js        límites y configuración
+db/schema.sql        tablas de PostgreSQL (invitations, invitation_images)
+src/config.js        límites y configuración (lee .env)
+src/db.js            conexión a PostgreSQL (pool, transacciones, migración)
+src/store.js         consultas SQL de las invitaciones
 src/templates.js     catálogo de cartas y precios
-src/store.js         almacenamiento (JSON en disco; reemplazable por una base de datos)
 src/payments.js      capa de pagos (acá se integra Mercado Pago / Stripe)
 public/              frontend (HTML/CSS/JS sin build)
   crear.html         editor con vista previa
@@ -57,9 +93,10 @@ test/                tests de la API (node:test)
 
 ## Próximos pasos sugeridos
 
-1. **Pagos reales**: implementar Mercado Pago (Checkout Pro) en `src/payments.js` y un webhook
+1. **Fotos en la nube**: guardarlas en Cloudflare R2 / S3 / Cloudinary en lugar de `data/uploads`
+   (necesario para publicar la web; la base ya guarda solo la URL).
+2. **Deploy**: Render / Railway con `DATABASE_URL` apuntando a Neon o Supabase.
+3. **Pagos reales**: Mercado Pago (Checkout Pro) en `src/payments.js` y un webhook
    `POST /api/payments/webhook` que marque la invitación como `paid`.
-2. **Deploy**: Render / Railway / Fly.io con un disco persistente para `DATA_DIR`
-   (o migrar `store.js` a una base de datos y las fotos a S3/Cloudinary).
-3. Nuevas plantillas: noviazgo, cita, etc.
-4. Confirmación de asistencia (RSVP) de los invitados.
+4. Nuevas plantillas: noviazgo, cita, etc.
+5. Confirmación de asistencia (RSVP) de los invitados.
