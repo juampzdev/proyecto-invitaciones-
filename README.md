@@ -33,13 +33,14 @@ La URL queda: `postgres://postgres:TU_CLAVE@localhost:5432/cartitas`.
 
 **C. Con Docker:** `docker compose up -d` levanta una base con la URL que ya trae `.env.example`.
 
-Después copiá `.env.example` como `.env` y pegá tu URL en `DATABASE_URL`.
-El archivo `.env` no se sube a GitHub (contiene contraseñas).
+Después hacé doble clic en `configurar-base-de-datos.bat` (Windows) o `configurar-base-de-datos.command`
+(Mac): te pide pegar la URL y crea el archivo `.env`. También podés copiar `.env.example` como `.env`
+y editarlo a mano. El archivo `.env` no se sube a GitHub (contiene contraseñas).
 
 ## Correr localmente
 
 **La forma más fácil:** doble clic en `iniciar-windows.bat` (Windows) o `iniciar-mac.command` (Mac).
-Si no existe `.env`, lo crea y te pide completar `DATABASE_URL`. Después instala las dependencias,
+Si no existe `.env`, primero te pide pegar la dirección de la base de datos. Después instala las dependencias,
 arranca el servidor y abre el navegador solo. En la ventana aparece también la dirección para
 abrir la web desde el celular (misma red WiFi).
 
