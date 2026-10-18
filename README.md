@@ -40,7 +40,7 @@ y editarlo a mano. El archivo `.env` no se sube a GitHub (contiene contraseñas)
 ## Correr localmente
 
 **La forma más fácil:** doble clic en `iniciar-windows.bat` (Windows) o `iniciar-mac.command` (Mac).
-Si no existe `.env`, primero te pide pegar la dirección de la base de datos. Después instala las dependencias,
+Primero trae los últimos cambios de GitHub (`git pull`). Si no existe `.env`, te pide pegar la dirección de la base de datos. Después instala las dependencias,
 arranca el servidor y abre el navegador solo. En la ventana aparece también la dirección para
 abrir la web desde el celular (misma red WiFi).
 
