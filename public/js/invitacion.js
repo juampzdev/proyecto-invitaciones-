@@ -11,6 +11,7 @@
       if (inv.status !== 'paid') document.getElementById('ownerBanner').hidden = false;
       document.title = `Cumpleaños de ${inv.name} 🎉`;
       Card.renderCard(document.getElementById('card'), inv, { interactive: true, confetti: 30 });
+      document.getElementById('madeWith').hidden = false;
     })
     .catch(() => (errorsBox.textContent = 'No se pudo conectar con el servidor.'));
 })();

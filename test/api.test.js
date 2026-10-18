@@ -111,3 +111,26 @@ test('rechaza archivos que no son imágenes y fechas inválidas', async () => {
   r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, age: '500' }) });
   assert.strictEqual(r.status, 400);
 });
+
+test('vista previa para redes (Open Graph) en el inicio y en la invitación', async () => {
+  let html = await (await fetch(`${base}/`)).text();
+  assert.match(html, /<meta property="og:title" content="Cartitas · Invitaciones digitales" \/>/);
+  assert.match(html, new RegExp(`<meta property="og:image" content="${base}/img/og-cartitas.jpg" />`));
+
+  // Nombre con caracteres HTML: tiene que quedar escapado, sin romper la página.
+  const r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, name: 'Ana "<b>"', place: 'Club & Bar' }, [PNG]) });
+  const { id, ownerToken } = await r.json();
+
+  // Antes de pagar: vista previa genérica, sin datos personales.
+  html = await (await fetch(`${base}/i/${id}`)).text();
+  assert.match(html, /<meta property="og:title" content="¡Estás invitado\/a! · Cartitas" \/>/);
+  assert.doesNotMatch(html, /Ana/);
+
+  await fetch(`${base}/api/invitations/${id}/pay`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: ownerToken }) });
+  html = await (await fetch(`${base}/i/${id}`)).text();
+  assert.match(html, /<meta property="og:title" content="¡Estás invitado\/a al cumpleaños de Ana &quot;&lt;b&gt;&quot;! 🎉" \/>/);
+  assert.match(html, /<meta property="og:description" content="Jueves, 14 de noviembre · 21:00 hs · Club &amp; Bar" \/>/);
+  assert.match(html, new RegExp(`<meta property="og:image" content="${base}/uploads/[A-Za-z0-9_-]+\\.png" />`));
+  assert.doesNotMatch(html, /<b>/);
+  assert.match(html, /Creá la tuya/);
+});

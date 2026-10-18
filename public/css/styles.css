@@ -173,3 +173,10 @@ textarea { resize: vertical; min-height: 96px; }
 .guest-page { padding: 16px; max-width: 560px; margin: 0 auto; }
 .preview-label { font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 8px; }
 .owner-banner { background: #fff7e0; color: #6b5200; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: .9rem; }
+
+/* Pie de la invitación: cada invitado que la abre conoce la marca. */
+.made-with { text-align: center; margin: 24px 0 8px; color: var(--muted); font-size: .9rem; }
+.made-with p { margin: 0 0 4px; }
+.made-with a { color: var(--text); text-decoration: none; font-weight: 600; }
+.made-with a:hover { text-decoration: underline; }
+.made-with .logo { font-size: 1.15rem; margin-left: 2px; }

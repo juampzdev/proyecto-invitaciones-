@@ -9,6 +9,7 @@ const templates = require('./src/templates');
 const db = require('./src/db');
 const store = require('./src/store');
 const payments = require('./src/payments');
+const social = require('./src/social');
 
 const app = express();
 app.disable('x-powered-by');
@@ -176,7 +177,39 @@ app.use('/uploads', express.static(store.uploadsDir, {
   maxAge: '7d',
   setHeaders: (res) => res.set('X-Content-Type-Options', 'nosniff'),
 }));
-app.get('/i/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'invitacion.html')));
+const SITE_DESCRIPTION = 'Creá invitaciones digitales personalizadas con fotos, fecha y un mensaje, y compartilas con un código QR.';
+
+// Inicio con vista previa para redes sociales.
+app.get('/', (req, res) => {
+  res.type('html').send(social.renderPage('index.html', {
+    title: 'Cartitas · Invitaciones digitales',
+    description: SITE_DESCRIPTION,
+    url: `${baseUrl(req)}/`,
+    image: `${baseUrl(req)}/img/og-cartitas.jpg`,
+  }));
+});
+
+// Página del invitado. La vista previa muestra el nombre, la fecha y la primera foto,
+// pero solo si la invitación está paga (si no, una vista previa genérica).
+app.get('/i/:id', asyncRoute(async (req, res) => {
+  const inv = await store.get(req.params.id);
+  const base = baseUrl(req);
+  let og = {
+    title: '¡Estás invitado/a! · Cartitas',
+    description: SITE_DESCRIPTION,
+    url: `${base}/i/${encodeURIComponent(req.params.id)}`,
+    image: `${base}/img/og-cartitas.jpg`,
+  };
+  if (inv && inv.status === 'paid') {
+    og = {
+      title: `¡Estás invitado/a al cumpleaños de ${inv.name}! 🎉`,
+      description: [social.describeDate(inv.date), inv.place].filter(Boolean).join(' · '),
+      url: invitationUrl(req, inv),
+      image: inv.images.length ? `${base}${inv.images[0]}` : `${base}/img/og-cartitas.jpg`,
+    };
+  }
+  res.type('html').send(social.renderPage('invitacion.html', og));
+}));
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, 'public', '404.html')));
