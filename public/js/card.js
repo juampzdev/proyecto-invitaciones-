@@ -81,6 +81,45 @@
     return box;
   }
 
+  // iPhone, iPad y Mac (los iPad nuevos se presentan como "Macintosh").
+  function isApple() {
+    return /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+  }
+
+  function mapLink(text, url, cls) {
+    const a = el('a', cls, text);
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    return a;
+  }
+
+  // "Cómo llegar": en Android y Windows abre Google Maps directo.
+  // En dispositivos Apple pregunta si abrir Google Maps o Apple Maps.
+  function mapsButton(place) {
+    const q = encodeURIComponent(place);
+    const google = `https://www.google.com/maps/search/?api=1&query=${q}`;
+    if (!isApple()) return mapLink('📍 Cómo llegar', google, 'btn secondary');
+
+    const box = el('div', 'maps');
+    const toggle = el('button', 'btn secondary', '📍 Cómo llegar');
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded', 'false');
+    const choice = el('div', 'maps-choice');
+    choice.hidden = true;
+    choice.append(
+      el('p', 'maps-question', '¿Con qué app querés abrirlo?'),
+      mapLink('Google Maps', google, 'btn secondary'),
+      mapLink('Apple Maps', `https://maps.apple.com/?q=${q}`, 'btn secondary')
+    );
+    toggle.addEventListener('click', () => {
+      choice.hidden = !choice.hidden;
+      toggle.setAttribute('aria-expanded', String(!choice.hidden));
+    });
+    box.append(toggle, choice);
+    return box;
+  }
+
   function renderCard(container, data, opts = {}) {
     container.replaceChildren();
     const card = el('article', `card theme-${data.theme || 'fiesta'}`);
@@ -121,13 +160,7 @@
       cal.href = URL.createObjectURL(new Blob([icsFor(data, d)], { type: 'text/calendar' }));
       cal.download = 'cumpleanos.ics';
       actions.appendChild(cal);
-      if (data.place) {
-        const map = el('a', 'btn secondary', '📍 Cómo llegar');
-        map.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(data.place);
-        map.target = '_blank';
-        map.rel = 'noopener';
-        actions.appendChild(map);
-      }
+      if (data.place) actions.appendChild(mapsButton(data.place));
       inner.appendChild(actions);
     }
 

@@ -160,9 +160,13 @@ textarea { resize: vertical; min-height: 96px; }
 .card .countdown b { display: block; font-size: 1.3rem; line-height: 1.1; }
 .card .countdown small { font-size: .7rem; text-transform: uppercase; }
 .card .card-actions { display: grid; gap: 10px; margin-top: 20px; }
-.card .card-actions a { background: var(--c-accent); color: #fff; }
-.card.theme-noche .card-actions a, .card.theme-dorado .card-actions a { color: #1b1530; }
-.card .card-actions a.secondary { background: transparent; color: var(--c-accent); border: 2px solid var(--c-accent); }
+.card .card-actions .btn { background: var(--c-accent); color: #fff; width: 100%; }
+.card.theme-noche .card-actions .btn, .card.theme-dorado .card-actions .btn { color: #1b1530; }
+.card .card-actions .btn.secondary { background: transparent; color: var(--c-accent); border: 2px solid var(--c-accent); }
+.card .maps { display: grid; gap: 10px; }
+.card .maps-choice { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+.card .maps-question { grid-column: 1 / -1; margin: 2px 0 0; font-size: .85rem; color: var(--c-muted); }
+.card .maps-choice .btn { padding: 10px 12px; font-size: .9rem; }
 
 /* confeti decorativo */
 .confetti { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
