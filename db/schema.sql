@@ -27,5 +27,11 @@ CREATE TABLE IF NOT EXISTS invitation_images (
   PRIMARY KEY (invitation_id, position)
 );
 
+-- Ubicación exacta del lugar (opcional), marcada en el mapa al crear la invitación.
+-- ADD COLUMN IF NOT EXISTS agrega las columnas a bases que ya existían, sin borrar datos.
+ALTER TABLE invitations
+  ADD COLUMN IF NOT EXISTS lat double precision CHECK (lat BETWEEN -90 AND 90),
+  ADD COLUMN IF NOT EXISTS lng double precision CHECK (lng BETWEEN -180 AND 180);
+
 -- Acelera los reportes de ventas ("pagadas este mes").
 CREATE INDEX IF NOT EXISTS invitations_status_paid_at_idx ON invitations (status, paid_at);

@@ -184,3 +184,12 @@ textarea { resize: vertical; min-height: 96px; }
 .made-with a { color: var(--text); text-decoration: none; font-weight: 600; }
 .made-with a:hover { text-decoration: underline; }
 .made-with .logo { font-size: 1.15rem; margin-left: 2px; }
+
+/* Ubicación exacta: mapa del formulario y mapita en la tarjeta. */
+.optional { font-weight: 400; color: var(--muted); font-size: .85rem; }
+.map-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-sm { padding: 8px 14px; font-size: .85rem; }
+.picker-map { height: 260px; border-radius: 12px; border: 1.5px solid var(--border); z-index: 0; }
+.hint-error { color: #c62828; }
+.link-btn { align-self: flex-start; background: none; border: 0; padding: 0; font: inherit; font-size: .85rem; color: var(--primary); text-decoration: underline; cursor: pointer; }
+.card .card-map { height: 200px; border-radius: 14px; margin: 4px 0 16px; z-index: 0; }

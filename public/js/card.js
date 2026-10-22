@@ -57,6 +57,7 @@
       `UID:${Date.now()}@cartas`, `DTSTART:${fmt(d)}`, `DTEND:${fmt(end)}`,
       `SUMMARY:${esc('Cumpleaños de ' + data.name)}`,
       data.place ? `LOCATION:${esc(data.place)}` : null,
+      hasCoords(data) ? `GEO:${data.lat};${data.lng}` : null,
       data.note ? `DESCRIPTION:${esc(data.note)}` : null,
       'END:VEVENT', 'END:VCALENDAR',
     ].filter(Boolean).join('\r\n');
@@ -94,11 +95,31 @@
     return a;
   }
 
+  function hasCoords(data) {
+    return Number.isFinite(data.lat) && Number.isFinite(data.lng);
+  }
+
+  // Links de mapas. Con ubicación marcada llevan al punto exacto (con ruta);
+  // si no, buscan el texto del campo "Lugar".
+  function mapUrls(data) {
+    if (hasCoords(data)) {
+      const ll = `${data.lat},${data.lng}`;
+      return {
+        google: `https://www.google.com/maps/dir/?api=1&destination=${ll}`,
+        apple: `https://maps.apple.com/?daddr=${ll}`,
+      };
+    }
+    const q = encodeURIComponent(data.place);
+    return {
+      google: `https://www.google.com/maps/search/?api=1&query=${q}`,
+      apple: `https://maps.apple.com/?q=${q}`,
+    };
+  }
+
   // "Cómo llegar": en Android y Windows abre Google Maps directo.
   // En dispositivos Apple pregunta si abrir Google Maps o Apple Maps.
-  function mapsButton(place) {
-    const q = encodeURIComponent(place);
-    const google = `https://www.google.com/maps/search/?api=1&query=${q}`;
+  function mapsButton(data) {
+    const { google, apple } = mapUrls(data);
     if (!isApple()) return mapLink('📍 Cómo llegar', google, 'btn secondary');
 
     const box = el('div', 'maps');
@@ -110,7 +131,7 @@
     choice.append(
       el('p', 'maps-question', '¿Con qué app querés abrirlo?'),
       mapLink('Google Maps', google, 'btn secondary'),
-      mapLink('Apple Maps', `https://maps.apple.com/?q=${q}`, 'btn secondary')
+      mapLink('Apple Maps', apple, 'btn secondary')
     );
     toggle.addEventListener('click', () => {
       choice.hidden = !choice.hidden;
@@ -150,6 +171,14 @@
     if (data.place) info.appendChild(infoItem('Lugar', data.place));
     inner.appendChild(info);
 
+    // Mapita con el pin (solo en la vista del invitado; en el editor ya está el mapa del formulario).
+    let mapBox = null;
+    if (opts.interactive && hasCoords(data) && window.L) {
+      mapBox = el('div', 'card-map');
+      mapBox.setAttribute('aria-label', 'Mapa con la ubicación del lugar');
+      inner.appendChild(mapBox);
+    }
+
     inner.appendChild(el('p', 'note', data.note || ''));
 
     if (d && d > Date.now()) inner.appendChild(countdown(d));
@@ -160,12 +189,26 @@
       cal.href = URL.createObjectURL(new Blob([icsFor(data, d)], { type: 'text/calendar' }));
       cal.download = 'cumpleanos.ics';
       actions.appendChild(cal);
-      if (data.place) actions.appendChild(mapsButton(data.place));
+      if (data.place || hasCoords(data)) actions.appendChild(mapsButton(data));
       inner.appendChild(actions);
     }
 
     card.appendChild(inner);
     container.appendChild(card);
+
+    // Leaflet necesita que el contenedor ya esté en la página para dibujar el mapa.
+    if (mapBox) {
+      const map = L.map(mapBox, {
+        scrollWheelZoom: false,
+        dragging: !L.Browser.mobile, // en celular, deslizar el dedo sigue moviendo la página
+        tap: false,
+      }).setView([data.lat, data.lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map);
+      L.marker([data.lat, data.lng]).addTo(map);
+    }
   }
 
   window.Card = { renderCard, parseLocal, formatDate, formatTime };

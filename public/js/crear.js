@@ -36,6 +36,8 @@
       place: (fd.get('place') || '').trim(),
       note: fd.get('note') || '',
       theme: fd.get('theme') || 'fiesta',
+      lat: fd.get('lat') || '',
+      lng: fd.get('lng') || '',
       images: photos.map((p) => p.url),
     };
   }
@@ -139,7 +141,7 @@
 
     const fd = new FormData();
     fd.append('template', templateId);
-    ['name', 'age', 'date', 'place', 'note', 'theme'].forEach((k) => fd.append(k, d[k]));
+    ['name', 'age', 'date', 'place', 'note', 'theme', 'lat', 'lng'].forEach((k) => fd.append(k, d[k]));
     photos.forEach((p, i) => fd.append('images', p.blob, p.blob.type === 'image/jpeg' ? `foto${i + 1}.jpg` : p.name));
 
     submit.disabled = true;

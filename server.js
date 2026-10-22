@@ -70,7 +70,20 @@ function validateBirthday(body) {
   if ([...note].length > limits.maxNoteChars) errors.push(`La nota no puede superar ${limits.maxNoteChars} caracteres.`);
   if (!tpl.themes.includes(theme)) errors.push('Estilo de tarjeta inválido.');
 
-  return { errors, data: { name, age: age ? Number(age) : null, date, place, note, theme } };
+  // Ubicación en el mapa: opcional, pero si viene tienen que venir las dos coordenadas válidas.
+  const latStr = str(body.lat);
+  const lngStr = str(body.lng);
+  let lat = null;
+  let lng = null;
+  if (latStr || lngStr) {
+    lat = Number(latStr);
+    lng = Number(lngStr);
+    const ok = latStr && lngStr && Number.isFinite(lat) && Number.isFinite(lng)
+      && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+    if (!ok) errors.push('La ubicación marcada en el mapa no es válida.');
+  }
+
+  return { errors, data: { name, age: age ? Number(age) : null, date, place, note, theme, lat, lng } };
 }
 
 function publicView(inv) {

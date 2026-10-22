@@ -134,3 +134,24 @@ test('vista previa para redes (Open Graph) en el inicio y en la invitación', as
   assert.doesNotMatch(html, /<b>/);
   assert.match(html, /Creá la tuya/);
 });
+
+test('ubicación exacta: se guarda si es válida y se rechaza si no', async () => {
+  let r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, lat: '-31.416668', lng: '-64.183334' }) });
+  assert.strictEqual(r.status, 201);
+  const { id, ownerToken } = await r.json();
+  const inv = (await (await fetch(`${base}/api/invitations/${id}?token=${ownerToken}`)).json()).invitation;
+  assert.strictEqual(inv.lat, -31.416668);
+  assert.strictEqual(inv.lng, -64.183334);
+
+  // Sin ubicación: queda vacía.
+  r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form(valid) });
+  const b = await r.json();
+  const sin = (await (await fetch(`${base}/api/invitations/${b.id}?token=${b.ownerToken}`)).json()).invitation;
+  assert.strictEqual(sin.lat, null);
+
+  // Solo una coordenada, fuera de rango o texto: error.
+  for (const bad of [{ lat: '-31.4' }, { lat: '95', lng: '10' }, { lat: 'abc', lng: '10' }]) {
+    r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, ...bad }) });
+    assert.strictEqual(r.status, 400, JSON.stringify(bad));
+  }
+});

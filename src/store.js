@@ -37,6 +37,8 @@ function fromRow(row) {
     place: row.place,
     note: row.note,
     theme: row.theme,
+    lat: row.lat,
+    lng: row.lng,
     images: row.images,
     createdAt: row.created_at,
     paidAt: row.paid_at,
@@ -62,9 +64,10 @@ async function create(data) {
   const ownerToken = newId(18);
   await db.transaction(async (client) => {
     await client.query(
-      `INSERT INTO invitations (id, owner_token, template, price, currency, name, age, event_at, place, note, theme)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-      [id, ownerToken, data.template, data.price, data.currency, data.name, data.age, data.date, data.place, data.note, data.theme]
+      `INSERT INTO invitations (id, owner_token, template, price, currency, name, age, event_at, place, note, theme, lat, lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      [id, ownerToken, data.template, data.price, data.currency, data.name, data.age, data.date, data.place, data.note, data.theme,
+        data.lat ?? null, data.lng ?? null]
     );
     for (const [i, url] of data.images.entries()) {
       await client.query(

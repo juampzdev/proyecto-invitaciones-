@@ -16,6 +16,13 @@ El cliente personaliza la carta, paga, y obtiene un **link + código QR** para c
 
 Pedido de noviazgo y cita aparecen como "Próximamente".
 
+### Mapas
+
+La ubicación exacta usa [Leaflet](https://leafletjs.com) con mapas de OpenStreetMap y el buscador
+Nominatim: son gratis y no piden cuenta. Sus reglas de uso piden poco volumen (Nominatim: como máximo
+1 búsqueda por segundo). Si la web crece mucho, conviene pasar a un proveedor pago (MapTiler, Mapbox,
+Google Maps Platform) cambiando solo la URL de los mapas en `public/js/map-picker.js` y `public/js/card.js`.
+
 ## Base de datos (PostgreSQL)
 
 Las invitaciones se guardan en PostgreSQL. Las tablas se crean solas al iniciar el servidor

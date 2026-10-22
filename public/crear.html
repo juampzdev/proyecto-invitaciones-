@@ -6,6 +6,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <link rel="stylesheet" href="/css/styles.css" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <title>Personalizá tu invitación · Cartitas</title>
@@ -40,6 +41,19 @@
       </div>
 
       <div class="field">
+        <label>Ubicación exacta en el mapa <span class="optional">(opcional)</span></label>
+        <div class="map-tools">
+          <button type="button" class="btn btn-ghost btn-sm" id="mapSearch">🔎 Buscar la dirección</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="mapLocate">📍 Usar mi ubicación</button>
+        </div>
+        <div id="pickerMap" class="picker-map" aria-label="Mapa para marcar el lugar"></div>
+        <span class="hint" id="mapHint">Tocá el mapa para marcar el lugar exacto. Después podés arrastrar el pin para ajustarlo.</span>
+        <button type="button" class="link-btn" id="mapClear" hidden>Quitar ubicación</button>
+        <input type="hidden" name="lat" id="lat" />
+        <input type="hidden" name="lng" id="lng" />
+      </div>
+
+      <div class="field">
         <label for="note">Nota para tus invitados</label>
         <textarea id="note" name="note" maxlength="256" placeholder="Ej: ¡No faltes! Traé tu mejor onda 🎉"></textarea>
         <span class="counter" id="counter">0 / 256</span>
@@ -71,7 +85,9 @@
       <div id="preview"></div>
     </section>
   </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="/js/card.js"></script>
+  <script src="/js/map-picker.js"></script>
   <script src="/js/crear.js"></script>
 </body>
 </html>
