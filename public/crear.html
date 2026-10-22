@@ -36,8 +36,12 @@
 
       <div class="field">
         <label for="place">Lugar</label>
-        <input type="text" id="place" name="place" maxlength="120" placeholder="Ej: Av. Colón 1234, Córdoba" aria-describedby="placeHint" />
-        <span class="hint" id="placeHint">Escribí la dirección completa con la ciudad, así tus invitados llegan sin perderse con el botón "Cómo llegar".</span>
+        <div class="autocomplete">
+          <input type="text" id="place" name="place" maxlength="120" placeholder="Ej: Av. Colón 1234, Córdoba" aria-describedby="placeHint"
+            autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="placeSuggestions" aria-expanded="false" />
+          <ul class="suggestions" id="placeSuggestions" role="listbox" hidden></ul>
+        </div>
+        <span class="hint" id="placeHint">Empezá a escribir la dirección y elegí una de las sugerencias: así queda bien escrita y marcada en el mapa.</span>
       </div>
 
       <div class="field">

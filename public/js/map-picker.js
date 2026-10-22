@@ -80,6 +80,125 @@
     }
   });
 
+  // ---------- Autocompletar la dirección mientras se escribe ----------
+  // Usa Photon (buscador de OpenStreetMap pensado para autocompletar; Nominatim no lo permite).
+  // Prioriza resultados cerca de la zona que muestra el mapa.
+  const list = document.getElementById('placeSuggestions');
+  const form = placeInput.form;
+  let results = [];
+  let active = -1;
+  let timer = null;
+  let controller = null;
+
+  function unique(parts) {
+    return parts.filter((p, i) => p && parts.indexOf(p) === i);
+  }
+
+  // Convierte un resultado de Photon en { main, detail, full, lat, lng }.
+  function describe(f) {
+    const p = f.properties;
+    const street = unique([p.street, p.housenumber]).join(' ');
+    const main = unique([p.name, street]).join(', ') || p.city || p.state || '';
+    const detail = unique([p.city || p.county, p.state, p.country]).filter((x) => x !== main).join(', ');
+    const full = unique([p.name, street, p.city || p.county, p.state]).join(', ').slice(0, 120);
+    return { main, detail, full, lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] };
+  }
+
+  function closeList() {
+    list.hidden = true;
+    list.replaceChildren();
+    placeInput.setAttribute('aria-expanded', 'false');
+    placeInput.removeAttribute('aria-activedescendant');
+    active = -1;
+  }
+
+  function highlight(i) {
+    active = i;
+    [...list.children].forEach((li, j) => li.setAttribute('aria-selected', String(j === i)));
+    if (i >= 0) placeInput.setAttribute('aria-activedescendant', list.children[i].id);
+  }
+
+  function choose(i) {
+    const r = results[i];
+    if (!r) return;
+    placeInput.value = r.full;
+    closeList();
+    setPoint(r.lat, r.lng, 17);
+    // Avisa al editor para que actualice la vista previa.
+    form.dispatchEvent(new Event('input'));
+  }
+
+  function showList() {
+    list.replaceChildren();
+    results.forEach((r, i) => {
+      const li = document.createElement('li');
+      li.id = `place-opt-${i}`;
+      li.setAttribute('role', 'option');
+      const main = document.createElement('strong');
+      main.textContent = r.main;
+      const detail = document.createElement('span');
+      detail.textContent = r.detail;
+      li.append(main, detail);
+      // mousedown (no click) para elegir antes de que el campo pierda el foco.
+      li.addEventListener('mousedown', (e) => { e.preventDefault(); choose(i); });
+      list.appendChild(li);
+    });
+    list.hidden = !results.length;
+    placeInput.setAttribute('aria-expanded', String(!!results.length));
+    active = -1;
+  }
+
+  // Minúsculas y sin tildes: "Colón" y "colon" cuentan igual.
+  function normalize(s) {
+    return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  // Reordena: primero las sugerencias que contienen más palabras de lo que se escribió.
+  function rank(list, q) {
+    const words = normalize(q).split(/[\s,.]+/).filter((w) => w.length >= 2);
+    const score = (r) => {
+      const text = normalize(`${r.main} ${r.detail}`);
+      return words.filter((w) => text.includes(w)).length;
+    };
+    return list
+      .map((r, i) => ({ r, i, s: score(r) }))
+      .sort((a, b) => b.s - a.s || a.i - b.i) // empate: se respeta el orden de Photon
+      .map((x) => x.r);
+  }
+
+  async function suggest(q) {
+    if (controller) controller.abort(); // cancela la búsqueda anterior si todavía no volvió
+    controller = new AbortController();
+    const c = map.getCenter();
+    const url = `https://photon.komoot.io/api/?limit=8&lat=${c.lat.toFixed(4)}&lon=${c.lng.toFixed(4)}&q=` + encodeURIComponent(q);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      const data = res.ok ? await res.json() : { features: [] };
+      results = rank(data.features.map(describe).filter((r) => r.main), q).slice(0, 5);
+      if (document.activeElement === placeInput) showList();
+    } catch (e) {
+      if (e.name !== 'AbortError') closeList(); // sin conexión: se puede seguir escribiendo a mano
+    }
+  }
+
+  placeInput.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = placeInput.value.trim();
+    if (q.length < 3) return closeList();
+    // Espera a que deje de tipear 300 ms para no buscar en cada letra.
+    timer = setTimeout(() => suggest(q), 300);
+  });
+
+  placeInput.addEventListener('keydown', (e) => {
+    if (list.hidden) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlight(Math.min(active + 1, results.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(Math.max(active - 1, 0)); }
+    else if (e.key === 'Enter' && active >= 0) { e.preventDefault(); choose(active); }
+    else if (e.key === 'Escape') closeList();
+  });
+
+  placeInput.addEventListener('blur', () => setTimeout(closeList, 150));
+
   // Ubicación actual del dispositivo (útil si el cliente está en el salón).
   document.getElementById('mapLocate').addEventListener('click', () => {
     if (!navigator.geolocation || !window.isSecureContext) {

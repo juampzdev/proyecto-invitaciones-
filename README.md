@@ -18,9 +18,10 @@ Pedido de noviazgo y cita aparecen como "Próximamente".
 
 ### Mapas
 
-La ubicación exacta usa [Leaflet](https://leafletjs.com) con mapas de OpenStreetMap y el buscador
-Nominatim: son gratis y no piden cuenta. Sus reglas de uso piden poco volumen (Nominatim: como máximo
-1 búsqueda por segundo). Si la web crece mucho, conviene pasar a un proveedor pago (MapTiler, Mapbox,
+La ubicación exacta usa [Leaflet](https://leafletjs.com) con mapas de OpenStreetMap. El autocompletado
+de direcciones usa [Photon](https://photon.komoot.io) y el botón "Buscar la dirección" usa Nominatim:
+son gratis y no piden cuenta, pero sus reglas de uso piden poco volumen (Nominatim: como máximo
+1 búsqueda por segundo y nunca para autocompletar). Si la web crece mucho, conviene pasar a un proveedor pago (MapTiler, Mapbox,
 Google Maps Platform) cambiando solo la URL de los mapas en `public/js/map-picker.js` y `public/js/card.js`.
 
 ## Base de datos (PostgreSQL)
