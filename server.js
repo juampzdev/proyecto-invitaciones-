@@ -65,7 +65,17 @@ function validateBirthday(body) {
   if (!name) errors.push('Ingresá el nombre del cumpleañero/a.');
   if (name.length > limits.maxNameChars) errors.push(`El nombre no puede superar ${limits.maxNameChars} caracteres.`);
   if (age && !(/^\d{1,3}$/.test(age) && +age >= 1 && +age <= 120)) errors.push('La edad debe ser un número entre 1 y 120.');
-  if (!DATE_RE.test(date) || Number.isNaN(Date.parse(date))) errors.push('Elegí una fecha y hora válidas.');
+  if (!DATE_RE.test(date) || Number.isNaN(Date.parse(date))) {
+    errors.push('Elegí una fecha y hora válidas.');
+  } else {
+    // La fecha viene en la hora local del cliente, sin zona horaria. La comparamos como si fuera UTC
+    // con un margen de 12 horas (la zona horaria más atrasada es UTC-12): así nunca rechazamos una
+    // fecha futura válida de ningún país. El formulario ya controla la hora exacta.
+    const when = Date.parse(`${date}:00Z`);
+    const HOUR = 3600 * 1000;
+    if (when < Date.now() - 12 * HOUR) errors.push('La fecha del cumpleaños ya pasó. Elegí una fecha futura.');
+    else if (when > Date.now() + (2 * 366 * 24 + 14) * HOUR) errors.push('La fecha puede ser como máximo dentro de 2 años. Revisá el año.');
+  }
   if (place.length > limits.maxPlaceChars) errors.push(`El lugar no puede superar ${limits.maxPlaceChars} caracteres.`);
   if ([...note].length > limits.maxNoteChars) errors.push(`La nota no puede superar ${limits.maxNoteChars} caracteres.`);
   if (!tpl.themes.includes(theme)) errors.push('Estilo de tarjeta inválido.');

@@ -205,3 +205,6 @@ textarea { resize: vertical; min-height: 96px; }
 .suggestions li strong { font-weight: 600; font-size: .95rem; }
 .suggestions li span { font-size: .8rem; color: var(--muted); }
 .suggestions li:hover, .suggestions li[aria-selected="true"] { background: #fdf0f4; }
+
+/* Campo con un valor inválido (por ejemplo, una fecha pasada). */
+input.invalid { border-color: #c62828; }

@@ -15,6 +15,7 @@ process.env.DATABASE_URL = TEST_DB;
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'cartitas-'));
 const app = require('../server');
 const db = require('../src/db');
+const social = require('../src/social');
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -40,7 +41,15 @@ function form(fields, images = []) {
   return fd;
 }
 
-const valid = { template: 'cumpleanos', name: 'Sofía', age: '30', date: '2030-11-14T21:00', note: 'Te espero', theme: 'noche' };
+// Fecha "AAAA-MM-DDTHH:mm" a N días de hoy (los tests no vencen con el paso del tiempo).
+function daysFromNow(n) {
+  const d = new Date(Date.now() + n * 864e5);
+  const pad = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T21:00`;
+}
+const EVENT_DATE = daysFromNow(60);
+
+const valid = { template: 'cumpleanos', name: 'Sofía', age: '30', date: EVENT_DATE, note: 'Te espero', theme: 'noche' };
 
 test('flujo completo: crear, pagar, ver y QR', async () => {
   let r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form(valid, [PNG, PNG]) });
@@ -74,7 +83,7 @@ test('flujo completo: crear, pagar, ver y QR', async () => {
   // Los datos quedaron en PostgreSQL: la invitación y sus 2 fotos, en orden.
   const { rows } = await db.query('SELECT position FROM invitation_images WHERE invitation_id = $1 ORDER BY position', [id]);
   assert.deepStrictEqual(rows.map((x) => x.position), [1, 2]);
-  assert.strictEqual(body.invitation.date, '2030-11-14T21:00');
+  assert.strictEqual(body.invitation.date, EVENT_DATE);
   assert.strictEqual(body.invitation.name, 'Sofía');
 
   // Pagar dos veces no cambia la fecha del primer pago.
@@ -106,6 +115,15 @@ test('rechaza archivos que no son imágenes y fechas inválidas', async () => {
   assert.strictEqual(r.status, 400);
   r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, date: 'mañana' }) });
   assert.strictEqual(r.status, 400);
+
+  // Fechas pasadas (el caso reportado: 11/05/2001) y demasiado lejanas.
+  for (const date of ['2001-05-11T21:00', daysFromNow(-2), daysFromNow(3 * 365)]) {
+    r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, date }) });
+    assert.strictEqual(r.status, 400, date);
+  }
+  // Mañana sí es válida.
+  r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, date: daysFromNow(1) }) });
+  assert.strictEqual(r.status, 201);
   r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, name: '' }) });
   assert.strictEqual(r.status, 400);
   r = await fetch(`${base}/api/invitations`, { method: 'POST', body: form({ ...valid, age: '500' }) });
@@ -129,7 +147,8 @@ test('vista previa para redes (Open Graph) en el inicio y en la invitación', as
   await fetch(`${base}/api/invitations/${id}/pay`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: ownerToken }) });
   html = await (await fetch(`${base}/i/${id}`)).text();
   assert.match(html, /<meta property="og:title" content="¡Estás invitado\/a al cumpleaños de Ana &quot;&lt;b&gt;&quot;! 🎉" \/>/);
-  assert.match(html, /<meta property="og:description" content="Jueves, 14 de noviembre · 21:00 hs · Club &amp; Bar" \/>/);
+  assert.ok(html.includes(`<meta property="og:description" content="${social.describeDate(EVENT_DATE)} · Club &amp; Bar" />`));
+  assert.match(social.describeDate(EVENT_DATE), /^[A-ZÁÉÍÓÚ][a-záéíóú]+, \d{1,2} de [a-z]+ · 21:00 hs$/);
   assert.match(html, new RegExp(`<meta property="og:image" content="${base}/uploads/[A-Za-z0-9_-]+\\.png" />`));
   assert.doesNotMatch(html, /<b>/);
   assert.match(html, /Creá la tuya/);

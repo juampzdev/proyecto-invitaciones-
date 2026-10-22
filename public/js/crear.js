@@ -15,10 +15,34 @@
   const templateId = params.get('t') || 'cumpleanos';
   let photos = []; // { blob, url, name }
 
-  // No permitir fechas pasadas.
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  dateInput.min = now.toISOString().slice(0, 16);
+  // Fechas permitidas: desde ahora hasta dentro de 2 años (el servidor controla lo mismo).
+  // min/max limitan el calendario, pero si la fecha se escribe a mano hay que revisarla igual.
+  function localInputValue(d) {
+    const x = new Date(d);
+    x.setMinutes(x.getMinutes() - x.getTimezoneOffset());
+    return x.toISOString().slice(0, 16);
+  }
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() + 2);
+  dateInput.min = localInputValue(new Date());
+  dateInput.max = localInputValue(maxDate);
+
+  function dateError(value) {
+    const d = Card.parseLocal(value);
+    if (!d) return 'Elegí la fecha y hora del cumpleaños.';
+    if (d <= new Date()) return 'La fecha del cumpleaños ya pasó. Elegí una fecha futura.';
+    if (d > maxDate) return 'La fecha puede ser como máximo dentro de 2 años. Revisá el año.';
+    return null;
+  }
+
+  // Avisa apenas se elige o escribe una fecha inválida, sin esperar al envío.
+  dateInput.addEventListener('change', () => {
+    const err = dateInput.value ? dateError(dateInput.value) : null;
+    dateInput.setCustomValidity(err || '');
+    dateInput.classList.toggle('invalid', !!err);
+    if (err) showErrors([err]);
+    else showErrors([]);
+  });
 
   fetch('/api/templates').then((r) => r.json()).then(({ templates }) => {
     const t = templates.find((x) => x.id === templateId);
@@ -126,7 +150,8 @@
   function validate(d) {
     const errs = [];
     if (!d.name) errs.push('Ingresá el nombre del cumpleañero/a.');
-    if (!d.date) errs.push('Elegí la fecha y hora del cumpleaños.');
+    const dateErr = dateError(d.date);
+    if (dateErr) errs.push(dateErr);
     if (d.note.length > 256) errs.push('La nota no puede superar 256 caracteres.');
     return errs;
   }
